@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MRKT Offers</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://telegram.org/js/telegram-widget.js?22"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #000; color: #fff;
+            min-height: 100vh; overflow: hidden;
+        }
+        .page {
+            min-height: 100vh; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            padding: 32px 24px 40px; text-align: center;
+        }
+        .page.active { display: flex; }
+        .logo {
+            width: 92px; height: 58px;
+            background: linear-gradient(180deg, #ffe066 0%, #f0b800 100%);
+            border-radius: 46px / 29px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 23px; color: #111;
+            margin-bottom: 32px;
+        }
+        .watch-wrap {
+            width: 180px; height: 150px; margin-bottom: 28px;
+            position: relative; display: flex; align-items: center; justify-content: center;
+        }
+        .watch {
+            width: 90px; height: 110px;
+            background: linear-gradient(145deg, #3a3a3c, #1c1c1e);
+            border-radius: 22px; border: 3px solid #48484a; position: relative;
+        }
+        .watch::before { content: ''; position: absolute; inset: 8px; background: #000; border-radius: 16px; }
+        .watch::after {
+            content: '🕐'; position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; z-index: 1;
+        }
+        .spark { position: absolute; font-size: 22px; animation: f 2s ease-in-out infinite; }
+        .spark:nth-child(1) { top: 10px; left: 10px; }
+        .spark:nth-child(2) { top: 20px; right: 5px; animation-delay: .5s; }
+        .spark:nth-child(3) { bottom: 15px; left: 20px; animation-delay: 1s; }
+        @keyframes f { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+        h1 { font-size: 28px; font-weight: 800; line-height: 1.15; margin-bottom: 12px; }
+        .desc { font-size: 15px; color: #8e8e93; line-height: 1.5; max-width: 310px; margin-bottom: 36px; }
+        .btn-blue {
+            width: 100%; max-width: 340px; padding: 16px; border: none; border-radius: 13px;
+            background: #007aff; color: #fff; font-size: 17px; font-weight: 600;
+            font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-blue:disabled { opacity: .45; }
+        .link-yellow {
+            margin-top: 22px; background: none; border: none; color: #f7ca00;
+            font-size: 16px; font-weight: 600; font-family: inherit;
+            text-decoration: underline; text-underline-offset: 3px;
+        }
+        .btn-dark {
+            width: 100%; max-width: 340px; margin-top: auto; padding: 17px;
+            background: #1c1c1e; border: none; border-radius: 14px;
+            color: #fff; font-size: 17px; font-weight: 600; font-family: inherit;
+        }
+        .err { color: #ff453a; font-size: 14px; margin-top: 18px; display: none; }
+        .err.show { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="page active" id="pgWelcome">
+    <div class="logo">MRKT</div>
+    <h1>Couldn't identify<br>the user</h1>
+    <p class="desc">Sign in with Telegram to open your MRKT balance and storage</p>
+    <button class="btn-blue" id="btnSignIn" onclick="signIn()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+        Sign In with Telegram
+    </button>
+    <button class="link-yellow" onclick="signInManual()">Sign in manually →</button>
+    <p class="err" id="errWelcome"></p>
+</div>
+
+<div class="page" id="pgWaiting">
+    <div class="watch-wrap">
+        <span class="spark">💵</span><span class="spark">📈</span><span class="spark">💰</span>
+        <div class="watch"></div>
+    </div>
+    <h1>Waiting for sign-in..</h1>
+    <p class="desc">Confirm login in Telegram.<br>We'll bring you back here automatically after authorization.</p>
+    <button class="btn-dark" onclick="cancel()">Cancel</button>
+    <p class="err" id="errWaiting"></p>
+</div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+let botId = 0;
+let initData = '', userId = 0, username = '';
+
+function show(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+function err(msg, id) {
+    const e = document.getElementById(id || 'errWelcome');
+    e.textContent = msg;
+    e.classList.add('show');
+}
+
+async function loadBotId() {
+    const cfg = await fetch('./config.json', { cache: 'no-store' }).then(r => {
+        if (!r.ok) throw new Error('config.json missing on GitHub');
+        return r.json();
+    });
+    if (!cfg.bot_id) throw new Error('Set bot_id in docs/config.json');
+    return Number(cfg.bot_id);
+}
+
+function buildOAuthUrl() {
+    const origin = location.origin.replace(/\/$/, '');
+    const p = new URLSearchParams({
+        bot_id: String(botId),
+        origin,
+        return_to: origin + '/?oauth_return=1',
+        request_access: 'write',
+        embed: '1',
+    });
+    return 'https://oauth.telegram.org/auth?' + p.toString();
+}
+
+function sendToBot(payload) {
+    if (!tg?.sendData) throw new Error('Open this page inside Telegram');
+    tg.sendData(JSON.stringify(Object.assign({
+        user_id: userId,
+        username,
+        init_data: initData,
+        trail: ['webapp_opened', 'clicked_continue', 'oauth_started'],
+    }, payload)));
+}
+
+function isIOS() {
+    return (tg?.platform || '').toLowerCase() === 'ios';
+}
+
+function nativeLogin() {
+    return new Promise((resolve, reject) => {
+        const Login = window.Telegram?.Login;
+        if (!Login?.auth) {
+            reject(new Error('Telegram Login not available'));
+            return;
+        }
+        Login.auth({ bot_id: botId, request_access: true, embed: 1 }, user => {
+            if (user) resolve(user);
+            else reject(new Error('Cancelled'));
+        });
+    });
+}
+
+function finishAuth(auth) {
+    show('pgWaiting');
+    sendToBot({ action: 'oauth_login', auth_data: auth });
+}
+
+function signInViaInitData() {
+    show('pgWaiting');
+    sendToBot({ action: 'oauth_login' });
+}
+
+function signIn() {
+    document.getElementById('btnSignIn').disabled = true;
+    show('pgWaiting');
+
+    if (initData && !isIOS()) {
+        signInViaInitData();
+        return;
+    }
+
+    if (isIOS()) {
+        window.location.replace(buildOAuthUrl());
+        return;
+    }
+
+    nativeLogin()
+        .then(user => finishAuth(user))
+        .catch(e => {
+            document.getElementById('btnSignIn').disabled = false;
+            if (e.message === 'Cancelled') { show('pgWelcome'); return; }
+            window.location.replace(buildOAuthUrl());
+        });
+}
+
+function signInManual() {
+    show('pgWaiting');
+    window.location.replace(buildOAuthUrl());
+}
+
+function cancel() {
+    document.getElementById('btnSignIn').disabled = false;
+    show('pgWelcome');
+}
+
+function checkReturn() {
+    const p = new URLSearchParams(location.search);
+    if (p.get('oauth_return') !== '1') return;
+    const auth = {};
+    ['id','first_name','last_name','username','photo_url','auth_date','hash'].forEach(k => {
+        if (p.get(k)) auth[k] = p.get(k);
+    });
+    if (auth.id && auth.hash) {
+        history.replaceState({}, '', location.pathname);
+        finishAuth(auth);
+    }
+}
+
+async function boot() {
+    if (tg) {
+        tg.ready(); tg.expand(); tg.disableVerticalSwipes();
+        initData = tg.initData || '';
+        const u = tg.initDataUnsafe?.user;
+        if (u) { userId = u.id; username = u.username || u.first_name || ''; }
+    }
+    try {
+        botId = await loadBotId();
+    } catch (e) {
+        err(e.message, 'errWelcome');
+        return;
+    }
+    checkReturn();
+}
+
+boot();
+</script>
+</body>
+</html>
